@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>相続ガリ版配信履歴</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #ffffff;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: #142464;
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            font-weight: 300;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .controls {
+            padding: 30px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .search-filter {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .search-box {
+            flex: 1;
+            min-width: 300px;
+            position: relative;
+        }
+
+        .search-box input {
+            width: 100%;
+            padding: 12px 20px;
+            border: 2px solid #e9ecef;
+            border-radius: 25px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+
+        .search-box input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .filter-group {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .filter-group select {
+            padding: 10px 15px;
+            border: 2px solid #e9ecef;
+            border-radius: 20px;
+            background: white;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .filter-group select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+
+
+        .bookmarks-container {
+            padding: 30px;
+        }
+
+        .bookmark-item {
+            background: white;
+            border: 1px solid #e9ecef;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .bookmark-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            border-color: #667eea;
+        }
+
+        .bookmark-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 15px;
+        }
+
+        .bookmark-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .bookmark-url {
+            color: #667eea;
+            text-decoration: none;
+            font-size: 0.9rem;
+            word-break: break-all;
+        }
+
+        .bookmark-url:hover {
+            text-decoration: underline;
+        }
+
+        .bookmark-meta {
+            display: flex;
+            gap: 20px;
+            font-size: 0.85rem;
+            color: #6c757d;
+            flex-wrap: wrap;
+        }
+
+        .meta-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+
+
+        .pagination {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 30px;
+        }
+
+        .page-btn {
+            padding: 10px 15px;
+            border: 1px solid #e9ecef;
+            background: white;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .page-btn:hover,
+        .page-btn.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .no-results {
+            text-align: center;
+            padding: 50px;
+            color: #6c757d;
+        }
+
+        .no-results h3 {
+            margin-bottom: 10px;
+            color: #333;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2rem;
+            }
+
+            .search-filter {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .search-box {
+                min-width: auto;
+            }
+
+            .filter-group {
+                justify-content: center;
+            }
+
+            .stats {
+                justify-content: center;
+            }
+
+            .bookmark-header {
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .bookmark-meta {
+                flex-direction: column;
+                gap: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📚 相続ガリ版配信履歴</h1>
+            <p>過去に配信した相続ガリ版を確認できます</p>
+        </div>
+
+        <div class="controls">
+            <div class="search-filter">
+                <div class="search-box">
+                    <input type="text" id="searchInput" placeholder="相続ガリ版を検索..." onkeyup="filterBookmarks()">
+                </div>
+
+            </div>
+
+
+        </div>
+
+        <div class="bookmarks-container" id="bookmarksContainer">
+            <!-- ブックマークアイテムがここに表示されます -->
+        </div>
+
+        <div class="pagination" id="pagination">
+            <!-- ページネーションがここに表示されます -->
+        </div>
+    </div>
+
+    <script>
+        // サンプルデータ
+        const inheritanceGali = [
+            {
+                id: 1,
+                title: "ビジネスガリ版508号",
+                url: "https://example.com/web-dev-trends-2024",
+                date: "2024-01-15"
+            },
+            {
+                id: 2,
+                title: "ビジネスガリ版507号",
+                url: "https://example.com/ai-trends",
+                date: "2024-01-14"
+            },
+            {
+                id: 3,
+                title: "ビジネスガリ版506号",
+                url: "https://example.com/business-strategy",
+                date: "2024-01-13"
+            },
+            {
+                id: 4,
+                title: "ビジネスガリ版505号",
+                url: "https://example.com/health-guide",
+                date: "2024-01-12"
+            },
+            {
+                id: 5,
+                title: "ビジネスガリ版504号",
+                url: "https://example.com/programming-languages",
+                date: "2024-01-11"
+            },
+            {
+                id: 6,
+                title: "経済ニュース週間まとめ",
+                url: "https://example.com/economy-weekly",
+                date: "2024-01-10"
+            },
+            {
+                id: 7,
+                title: "リモートワークの効率化テクニック",
+                url: "https://example.com/remote-work-tips",
+                date: "2024-01-09"
+            },
+            {
+                id: 8,
+                title: "デザイン思考の実践方法",
+                url: "https://example.com/design-thinking",
+                date: "2024-01-08"
+            }
+        ];
+
+        let filteredInheritanceGali = [...inheritanceGali];
+        let currentPage = 1;
+        const itemsPerPage = 5;
+
+        // 初期表示
+        document.addEventListener('DOMContentLoaded', function() {
+            displayInheritanceGali();
+            updatePagination();
+        });
+
+        function filterBookmarks() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+
+            filteredInheritanceGali = inheritanceGali.filter(item => {
+                const matchesSearch = item.title.toLowerCase().includes(searchTerm);
+
+                return matchesSearch;
+            });
+
+            currentPage = 1;
+            displayInheritanceGali();
+            updatePagination();
+        }
+
+
+
+
+
+                function displayInheritanceGali() {
+            const container = document.getElementById('bookmarksContainer');
+            const startIndex = (currentPage - 1) * itemsPerPage;
+            const endIndex = startIndex + itemsPerPage;
+            const pageItems = filteredInheritanceGali.slice(startIndex, endIndex);
+
+            if (pageItems.length === 0) {
+                container.innerHTML = `
+                    <div class="no-results">
+                        <h3>🔍 検索結果が見つかりません</h3>
+                        <p>検索条件を変更してお試しください</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = pageItems.map(item => `
+                <div class="bookmark-item">
+                    <div class="bookmark-header">
+                        <div>
+                            <div class="bookmark-title">
+                                <a href="${item.url}" target="_blank" style="color: inherit; text-decoration: none;">${item.title}</a>
+                            </div>
+                        </div>
+                        <div class="bookmark-meta">
+                            <div class="meta-item">
+                                <span>📅</span>
+                                <span>${formatDate(item.date)}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleDateString('ja-JP', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+        }
+
+
+
+
+
+        function updatePagination() {
+            const totalPages = Math.ceil(filteredInheritanceGali.length / itemsPerPage);
+            const pagination = document.getElementById('pagination');
+
+            if (totalPages <= 1) {
+                pagination.innerHTML = '';
+                return;
+            }
+
+            let paginationHTML = '';
+
+            // 前のページボタン
+            if (currentPage > 1) {
+                paginationHTML += `<button class="page-btn" onclick="goToPage(${currentPage - 1})">← 前へ</button>`;
+            }
+
+            // ページ番号
+            for (let i = 1; i <= totalPages; i++) {
+                if (i === currentPage) {
+                    paginationHTML += `<button class="page-btn active">${i}</button>`;
+                } else {
+                    paginationHTML += `<button class="page-btn" onclick="goToPage(${i})">${i}</button>`;
+                }
+            }
+
+            // 次のページボタン
+            if (currentPage < totalPages) {
+                paginationHTML += `<button class="page-btn" onclick="goToPage(${currentPage + 1})">次へ →</button>`;
+            }
+
+            pagination.innerHTML = paginationHTML;
+        }
+
+        function goToPage(page) {
+            currentPage = page;
+            displayInheritanceGali();
+            updatePagination();
+        }
+
+        function openItem(url) {
+            window.open(url, '_blank');
+        }
+    </script>
+</body>
+</html> 
