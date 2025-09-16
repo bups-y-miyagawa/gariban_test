@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>相続ガリ版配信履歴</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #ffffff;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: #142464;
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            font-weight: 300;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .controls {
+            padding: 30px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .search-filter {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .search-box {
+            flex: 1;
+            min-width: 300px;
+            position: relative;
+        }
+
+        .search-box input {
+            width: 100%;
+            padding: 12px 20px;
+            border: 2px solid #e9ecef;
+            border-radius: 25px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+
+        .search-box input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .filter-group {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .filter-group select {
+            padding: 10px 15px;
+            border: 2px solid #e9ecef;
+            border-radius: 20px;
+            background: white;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .filter-group select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .bookmarks-container {
+            padding: 30px;
+        }
+
+        .bookmark-item {
+            background: white;
+            border: 1px solid #e9ecef;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .bookmark-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            border-color: #667eea;
+        }
+
+        .bookmark-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 15px;
+        }
+
+        .bookmark-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .bookmark-description {
+            font-size: 0.95rem;
+            color: #666;
+            line-height: 1.5;
+            margin-bottom: 10px;
+            max-width: 600px;
+        }
+
+        .bookmark-url {
+            color: #667eea;
+            text-decoration: none;
+            font-size: 0.9rem;
+            word-break: break-all;
+        }
+
+        .bookmark-url:hover {
+            text-decoration: underline;
+        }
+
+        .bookmark-meta {
+            display: flex;
+            gap: 20px;
+            font-size: 0.85rem;
+            color: #6c757d;
+            flex-wrap: wrap;
+        }
+
+        .meta-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .pagination {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 30px;
+            margin-bottom: 30px;
+        }
+
+        .page-btn {
+            padding: 10px 15px;
+            border: 1px solid #e9ecef;
+            background: white;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .page-btn:hover,
+        .page-btn.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .no-results {
+            text-align: center;
+            padding: 50px;
+            color: #6c757d;
+        }
+
+        .no-results h3 {
+            margin-bottom: 10px;
+            color: #333;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 50px;
+            color: #6c757d;
+        }
+
+        .error {
+            text-align: center;
+            padding: 50px;
+            color: #dc3545;
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            border-radius: 10px;
+            margin: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2rem;
+            }
+
+            .search-filter {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .search-box {
+                min-width: auto;
+            }
+
+            .filter-group {
+                justify-content: center;
+            }
+
+            .stats {
+                justify-content: center;
+            }
+
+            .bookmark-header {
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .bookmark-meta {
+                flex-direction: column;
+                gap: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📚 相続ガリ版配信履歴</h1>
+            <p>過去に配信した相続ガリ版を確認できます</p>
+        </div>
+
+        <div class="controls">
+            <div class="search-filter">
+                <div class="search-box">
+                    <input type="text" id="searchInput" placeholder="相続ガリ版を検索..." onkeyup="filterBookmarks()">
+                </div>
+            </div>
+        </div>
+
+        <div class="bookmarks-container" id="bookmarksContainer">
+            <div class="loading">
+                <h3>📊 データを読み込み中...</h3>
+                <p>CSVファイルから相続ガリ版データを読み込んでいます</p>
+            </div>
+        </div>
+
+        <div class="pagination" id="pagination">
+            <!-- ページネーションがここに表示されます -->
+        </div>
+    </div>
+
+    <script>
+        let inheritanceGali = [];
+        let filteredInheritanceGali = [];
+        let currentPage = 1;
+        const itemsPerPage = 5;
+
+        // CSVファイルを読み込む関数
+        async function loadCSVData() {
+            try {
+                const response = await fetch('inheritance-gali-data.csv');
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const csvText = await response.text();
+                inheritanceGali = parseCSV(csvText);
+                
+                // 公開期限に基づいてフィルタリング
+                filteredInheritanceGali = filterByPublishDate();
+                displayInheritanceGali();
+                updatePagination();
+            } catch (error) {
+                console.error('CSVファイルの読み込みに失敗しました:', error);
+                showError('データの読み込みに失敗しました。CSVファイルが正しく配置されているか確認してください。');
+            }
+        }
+
+        // CSVをパースする関数
+        function parseCSV(csvText) {
+            const lines = csvText.split('\n');
+            const headers = lines[0].split(',');
+            const data = [];
+
+            for (let i = 1; i < lines.length; i++) {
+                if (lines[i].trim() === '') continue; // 空行をスキップ
+                
+                const values = parseCSVLine(lines[i]);
+                if (values.length === headers.length) {
+                    const item = {};
+                    headers.forEach((header, index) => {
+                        item[header.trim()] = values[index].trim();
+                    });
+                    data.push(item);
+                }
+            }
+            return data;
+        }
+
+        // CSVの1行をパースする関数（カンマ区切りで、引用符内のカンマは無視）
+        function parseCSVLine(line) {
+            const result = [];
+            let current = '';
+            let inQuotes = false;
+            
+            for (let i = 0; i < line.length; i++) {
+                const char = line[i];
+                
+                if (char === '"') {
+                    inQuotes = !inQuotes;
+                } else if (char === ',' && !inQuotes) {
+                    result.push(current);
+                    current = '';
+                } else {
+                    current += char;
+                }
+            }
+            result.push(current);
+            return result;
+        }
+
+        // エラー表示関数
+        function showError(message) {
+            const container = document.getElementById('bookmarksContainer');
+            container.innerHTML = `
+                <div class="error">
+                    <h3>❌ エラーが発生しました</h3>
+                    <p>${message}</p>
+                </div>
+            `;
+        }
+
+        // 公開期限チェック関数（秒まで含む、日本時間）
+        function isPublishTimeReached(publishDateString) {
+            // 現在時刻を取得
+            const now = new Date();
+            
+            // yyyy/mm/dd hh:mm:ss形式をDateオブジェクトに変換
+            // 日本時間として解釈するため、UTC+9のタイムゾーンを設定
+            const [datePart, timePart] = publishDateString.split(' ');
+            const [year, month, day] = datePart.split('/');
+            const [hour, minute, second] = timePart.split(':');
+            
+            // 日本時間のDateオブジェクトを作成
+            const publishDate = new Date(year, month - 1, day, hour, minute, second);
+            
+            // 現在時刻が公開期限以降かどうかを秒まで判定
+            return now >= publishDate;
+        }
+
+        // 公開期限に基づいてフィルタリング
+        function filterByPublishDate() {
+            return inheritanceGali.filter(item => {
+                return isPublishTimeReached(item.publishDate);
+            });
+        }
+
+        // 初期表示
+        document.addEventListener('DOMContentLoaded', function() {
+            loadCSVData();
+        });
+
+        function filterBookmarks() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+
+            // まず公開期限でフィルタリング
+            const publishFilteredItems = filterByPublishDate();
+            
+            // 次に検索条件でフィルタリング
+            filteredInheritanceGali = publishFilteredItems.filter(item => {
+                const matchesSearch = item.title.toLowerCase().includes(searchTerm);
+
+                return matchesSearch;
+            });
+
+            currentPage = 1;
+            displayInheritanceGali();
+            updatePagination();
+        }
+
+        function displayInheritanceGali() {
+            const container = document.getElementById('bookmarksContainer');
+            const startIndex = (currentPage - 1) * itemsPerPage;
+            const endIndex = startIndex + itemsPerPage;
+            const pageItems = filteredInheritanceGali.slice(startIndex, endIndex);
+
+            if (pageItems.length === 0) {
+                container.innerHTML = `
+                    <div class="no-results">
+                        <h3>🔍 検索結果が見つかりません</h3>
+                        <p>検索条件を変更してお試しください</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = pageItems.map(item => `
+                <div class="bookmark-item">
+                    <div class="bookmark-header">
+                        <div>
+                            <div class="bookmark-title">
+                                <a href="${item.url}" target="_blank" style="color: inherit; text-decoration: none;">${item.title}</a>
+                            </div>
+                            <div class="bookmark-description">
+                                ${item.description}
+                            </div>
+                        </div>
+                        <div class="bookmark-meta">
+                            <div class="meta-item">
+                                <span>📅</span>
+                                <span>${formatDate(item.date)}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function formatDate(dateString) {
+            // 日本語の日付形式（YYYY年MM月DD日）の場合は「発行」を追加
+            if (dateString.includes('年') && dateString.includes('月') && dateString.includes('日')) {
+                return dateString + '発行';
+            }
+            
+            // 通常の日付形式の場合は変換する
+            const date = new Date(dateString);
+            if (isNaN(date.getTime())) {
+                return dateString; // 無効な日付の場合は元の文字列を返す
+            }
+            return date.toLocaleDateString('ja-JP', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            }) + '発行';
+        }
+
+        function updatePagination() {
+            const totalPages = Math.ceil(filteredInheritanceGali.length / itemsPerPage);
+            const pagination = document.getElementById('pagination');
+
+            if (totalPages <= 1) {
+                pagination.innerHTML = '';
+                return;
+            }
+
+            let paginationHTML = '';
+
+            // 前のページボタン
+            if (currentPage > 1) {
+                paginationHTML += `<button class="page-btn" onclick="goToPage(${currentPage - 1})">← 前へ</button>`;
+            }
+
+            // ページ番号
+            for (let i = 1; i <= totalPages; i++) {
+                if (i === currentPage) {
+                    paginationHTML += `<button class="page-btn active">${i}</button>`;
+                } else {
+                    paginationHTML += `<button class="page-btn" onclick="goToPage(${i})">${i}</button>`;
+                }
+            }
+
+            // 次のページボタン
+            if (currentPage < totalPages) {
+                paginationHTML += `<button class="page-btn" onclick="goToPage(${currentPage + 1})">次へ →</button>`;
+            }
+
+            pagination.innerHTML = paginationHTML;
+        }
+
+        function goToPage(page) {
+            currentPage = page;
+            displayInheritanceGali();
+            updatePagination();
+        }
+
+        function openItem(url) {
+            window.open(url, '_blank');
+        }
+    </script>
+</body>
+</html>
