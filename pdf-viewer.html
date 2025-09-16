@@ -182,7 +182,7 @@
                 <canvas id="pdfCanvas"></canvas>
             </div>
             <div class="instructions">
-                タップで拡大・縮小 | ドラッグで移動 | ダブルタップでリセット
+                タップで拡大・縮小 | ドラッグで移動 | ダブルタップでリセット | ピンチでズーム
             </div>
         </div>
     </div>
@@ -205,6 +205,13 @@
                 this.dragStart = { x: 0, y: 0 };
                 this.currentPosition = { x: 0, y: 0 };
                 this.lastPosition = { x: 0, y: 0 };
+                
+                // タッチ関連の変数
+                this.touchStartTime = 0;
+                this.touchStartDistance = 0;
+                this.initialZoom = 1.0;
+                this.lastTouchDistance = 0;
+                this.isPinching = false;
                 
                 this.canvas = document.getElementById('pdfCanvas');
                 this.ctx = this.canvas.getContext('2d');
@@ -255,20 +262,16 @@
                 // タッチイベント
                 this.container.addEventListener('touchstart', (e) => {
                     e.preventDefault();
-                    if (e.touches.length === 1) {
-                        this.startDrag(e.touches[0]);
-                    }
+                    this.handleTouchStart(e);
                 });
 
                 this.container.addEventListener('touchmove', (e) => {
                     e.preventDefault();
-                    if (e.touches.length === 1) {
-                        this.drag(e.touches[0]);
-                    }
+                    this.handleTouchMove(e);
                 });
 
-                this.container.addEventListener('touchend', () => {
-                    this.endDrag();
+                this.container.addEventListener('touchend', (e) => {
+                    this.handleTouchEnd(e);
                 });
 
                 // ホイールイベント（ズーム）
@@ -305,6 +308,77 @@
                             break;
                     }
                 });
+            }
+
+            handleTouchStart(e) {
+                this.touchStartTime = Date.now();
+                
+                if (e.touches.length === 1) {
+                    // シングルタッチ - ドラッグ開始
+                    this.startDrag(e.touches[0]);
+                } else if (e.touches.length === 2) {
+                    // ダブルタッチ - ピンチズーム開始
+                    this.isPinching = true;
+                    this.touchStartDistance = this.getTouchDistance(e.touches);
+                    this.initialZoom = this.zoom;
+                    this.lastTouchDistance = this.touchStartDistance;
+                }
+            }
+
+            handleTouchMove(e) {
+                if (e.touches.length === 1 && !this.isPinching) {
+                    // シングルタッチ - ドラッグ
+                    this.drag(e.touches[0]);
+                } else if (e.touches.length === 2 && this.isPinching) {
+                    // ダブルタッチ - ピンチズーム
+                    const currentDistance = this.getTouchDistance(e.touches);
+                    const scale = currentDistance / this.touchStartDistance;
+                    const newZoom = Math.max(this.minZoom, Math.min(this.maxZoom, this.initialZoom * scale));
+                    
+                    if (Math.abs(newZoom - this.zoom) > 0.01) {
+                        this.zoom = newZoom;
+                        this.updateZoomLevel();
+                        this.renderPage();
+                    }
+                }
+            }
+
+            handleTouchEnd(e) {
+                const touchEndTime = Date.now();
+                const touchDuration = touchEndTime - this.touchStartTime;
+                
+                if (e.touches.length === 0) {
+                    // すべてのタッチが終了
+                    if (this.isPinching) {
+                        this.isPinching = false;
+                    } else if (touchDuration < 300 && !this.isDragging) {
+                        // 短時間のタップ - ズーム切り替え
+                        this.toggleZoom();
+                    }
+                    this.endDrag();
+                } else if (e.touches.length === 1 && this.isPinching) {
+                    // ピンチからシングルタッチに変更
+                    this.isPinching = false;
+                    this.startDrag(e.touches[0]);
+                }
+            }
+
+            getTouchDistance(touches) {
+                const dx = touches[0].clientX - touches[1].clientX;
+                const dy = touches[0].clientY - touches[1].clientY;
+                return Math.sqrt(dx * dx + dy * dy);
+            }
+
+            toggleZoom() {
+                if (this.zoom === 1.0) {
+                    this.zoom = 2.0;
+                } else if (this.zoom === 2.0) {
+                    this.zoom = 1.0;
+                } else {
+                    this.zoom = 1.0;
+                }
+                this.updateZoomLevel();
+                this.renderPage();
             }
 
             async loadPDF(file) {
