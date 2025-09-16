@@ -112,6 +112,8 @@
             margin-bottom: 20px;
             transition: all 0.3s ease;
             cursor: pointer;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
         }
 
         .bookmark-item:hover {
@@ -426,6 +428,15 @@
         // 初期表示
         document.addEventListener('DOMContentLoaded', function() {
             loadCSVData();
+            
+            // タッチイベントの処理を追加
+            document.addEventListener('touchstart', function(e) {
+                // タッチ開始時の処理（必要に応じて）
+            }, { passive: true });
+            
+            document.addEventListener('touchend', function(e) {
+                // タッチ終了時の処理（必要に応じて）
+            }, { passive: true });
         });
 
         function filterBookmarks() {
@@ -462,12 +473,12 @@
                 return;
             }
 
-            container.innerHTML = pageItems.map(item => `
-                <div class="bookmark-item">
+            container.innerHTML = pageItems.map((item, index) => `
+                <div class="bookmark-item" data-url="${item.url}" data-index="${index}">
                     <div class="bookmark-header">
                         <div>
                             <div class="bookmark-title">
-                                <a href="${item.url}" target="_blank" style="color: inherit; text-decoration: none;">${item.title}</a>
+                                <span style="color: inherit; text-decoration: none;">${item.title}</span>
                                 ${item.publishDate === latestPublishDate ? '<span class="new-badge">NEW</span>' : ''}
                             </div>
                             <div class="bookmark-description">
@@ -483,6 +494,9 @@
                     </div>
                 </div>
             `).join('');
+            
+            // イベントリスナーを追加
+            addEventListeners();
         }
 
         function formatDate(dateString) {
@@ -542,8 +556,56 @@
             updatePagination();
         }
 
+        function openPDF(url) {
+            // モバイルデバイスでのPDF表示を改善
+            if (isMobileDevice()) {
+                // モバイルでは新しいタブで開く
+                window.open(url, '_blank');
+            } else {
+                // PCでは新しいタブで開く
+                window.open(url, '_blank');
+            }
+        }
+
+        function isMobileDevice() {
+            return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        }
+
+        // イベントリスナーを追加する関数
+        function addEventListeners() {
+            const bookmarkItems = document.querySelectorAll('.bookmark-item');
+            bookmarkItems.forEach(item => {
+                const url = item.getAttribute('data-url');
+                
+                // クリックイベント
+                item.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    openPDF(url);
+                });
+                
+                // タッチイベント（モバイル用）
+                item.addEventListener('touchend', function(e) {
+                    e.preventDefault();
+                    openPDF(url);
+                });
+                
+                // キーボードイベント（アクセシビリティ用）
+                item.addEventListener('keydown', function(e) {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        openPDF(url);
+                    }
+                });
+                
+                // タブインデックスを設定（アクセシビリティ用）
+                item.setAttribute('tabindex', '0');
+                item.setAttribute('role', 'button');
+                item.setAttribute('aria-label', `PDFを開く: ${item.querySelector('.bookmark-title span').textContent}`);
+            });
+        }
+
         function openItem(url) {
-            window.open(url, '_blank');
+            openPDF(url);
         }
     </script>
 </body>
