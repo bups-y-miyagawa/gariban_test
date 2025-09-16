@@ -167,6 +167,16 @@
             gap: 5px;
         }
 
+        .new-badge {
+            background: #28a745;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.7rem;
+            font-weight: bold;
+            margin-left: 8px;
+        }
+
         .pagination {
             display: flex;
             justify-content: center;
@@ -284,6 +294,7 @@
         let filteredInheritanceGali = [];
         let currentPage = 1;
         const itemsPerPage = 5;
+        let latestPublishDate = null; // 最も新しい公開日時を保存
 
         // CSVファイルを読み込む関数
         async function loadCSVData() {
@@ -294,6 +305,9 @@
                 }
                 const csvText = await response.text();
                 inheritanceGali = parseCSV(csvText);
+                
+                // 最も新しい公開日時を取得
+                latestPublishDate = getLatestPublishDate();
                 
                 // 公開期限に基づいてフィルタリング
                 filteredInheritanceGali = filterByPublishDate();
@@ -346,6 +360,31 @@
             }
             result.push(current);
             return result;
+        }
+
+        // 最も新しい公開日時を取得する関数
+        function getLatestPublishDate() {
+            if (inheritanceGali.length === 0) return null;
+            
+            let latest = inheritanceGali[0].publishDate;
+            for (let i = 1; i < inheritanceGali.length; i++) {
+                const currentDate = parsePublishDate(inheritanceGali[i].publishDate);
+                const latestDate = parsePublishDate(latest);
+                
+                if (currentDate > latestDate) {
+                    latest = inheritanceGali[i].publishDate;
+                }
+            }
+            return latest;
+        }
+
+        // 公開日時文字列をDateオブジェクトに変換する関数
+        function parsePublishDate(publishDateString) {
+            const [datePart, timePart] = publishDateString.split(' ');
+            const [year, month, day] = datePart.split('/');
+            const [hour, minute, second] = timePart.split(':');
+            
+            return new Date(year, month - 1, day, hour, minute, second);
         }
 
         // エラー表示関数
@@ -429,6 +468,7 @@
                         <div>
                             <div class="bookmark-title">
                                 <a href="${item.url}" target="_blank" style="color: inherit; text-decoration: none;">${item.title}</a>
+                                ${item.publishDate === latestPublishDate ? '<span class="new-badge">NEW</span>' : ''}
                             </div>
                             <div class="bookmark-description">
                                 ${item.description}
